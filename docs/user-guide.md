@@ -3,8 +3,6 @@
 CleanTool adds two independent tools to AutoCAD 2025/2026. Each tool has its own commands and its own settings;
 settings are kept for the AutoCAD session and are shared by a tool's dialog and its command-line version.
 
-[TOC]
-
 ## Commands
 
 ### Clean – drawing cleanup
