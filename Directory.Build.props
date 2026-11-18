@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <!-- The one place for the version: DLLs, PackageContents.xml, the zip and the installer all take it from here. -->
+    <Version>1.0.0</Version>
+    <Product>CleanTool</Product>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- XML docs are generated (also used by Doxygen/IntelliSense); CS1591 (missing XML comment) is not treated as a warning. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+</Project>

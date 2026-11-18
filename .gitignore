@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+*.user
+TestResults/
+docs/api/
+artifacts/
+installer/Output/
+installer.txt

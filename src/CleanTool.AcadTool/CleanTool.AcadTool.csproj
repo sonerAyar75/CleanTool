@@ -1,0 +1,132 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    CleanTool.AcadTool: thin adapter layer that depends on AutoCAD.
+    Implements Core's ports (IFlattenGateway, IDuplicateGateway, ILayerGateway, ...) with the AutoCAD API,
+    hosts the tool modules (Clean, WallTrim), commands and dialogs.
+    Targets AutoCAD 2025/2026 on .NET 8 (AutoCAD.NET 25.1.0 NuGet package).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>CleanTool.AcadTool</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- Editor.StartUserInteraction has a WPF Window overload, so the compiler must see PresentationFramework. -->
+    <UseWPF>true</UseWPF>
+
+    <!-- Fixed deployment target (AutoCAD's counterpart of Revit's Addins folder). Disable with: -p:DeployBundle=false -->
+    <DeployBundle Condition="'$(DeployBundle)' == ''">true</DeployBundle>
+    <BundleDir>$(APPDATA)\Autodesk\ApplicationPlugins\CleanTool.bundle</BundleDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      AutoCAD 2026 (R25.1, .NET 8) API. Also compatible with 2025 (R25.0).
+      ExcludeAssets="runtime": the AutoCAD DLLs are NOT copied to the output; AutoCAD loads its own.
+    -->
+    <PackageReference Include="AutoCAD.NET" Version="25.1.0" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    Remove the WinForms/WPF global usings: names such as Region and Application in System.Drawing /
+    System.Windows.Forms clash with AutoCAD types. UI files add these usings explicitly.
+  -->
+  <ItemGroup>
+    <Using Remove="System.Drawing" />
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Windows" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CleanTool.Core\CleanTool.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Bundle\PackageContents.xml" />
+  </ItemGroup>
+
+  <!-- Small inline task: copies a text file and replaces a token (WriteLinesToFile would treat * and ; in the XML specially). -->
+  <UsingTask TaskName="CleanToolReplaceToken" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceFile ParameterType="System.String" Required="true" />
+      <DestinationFile ParameterType="System.String" Required="true" />
+      <Token ParameterType="System.String" Required="true" />
+      <Value ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var text = System.IO.File.ReadAllText(SourceFile).Replace(Token, Value);
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(DestinationFile));
+        if (!System.IO.File.Exists(DestinationFile) || System.IO.File.ReadAllText(DestinationFile) != text)
+            System.IO.File.WriteAllText(DestinationFile, text, new System.Text.UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+    After build: the manifest with @VERSION@ replaced by $(Version) (in obj\), and the files of the bundle's Contents
+    folder: our own DLLs (AcadTool + Core); the AutoCAD DLLs are never shipped. Defined inside the target so the
+    wildcards are evaluated after the DLLs exist. Used by the deploy and pack targets below.
+  -->
+  <Target Name="StampBundleManifest" AfterTargets="Build">
+    <PropertyGroup>
+      <StampedManifest>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)PackageContents.xml</StampedManifest>
+    </PropertyGroup>
+    <ItemGroup>
+      <_CleanToolBinaries Include="$(OutDir)CleanTool.*.dll;$(OutDir)CleanTool.AcadTool.deps.json" />
+      <_CleanToolSymbols Include="$(OutDir)CleanTool.*.pdb" />
+    </ItemGroup>
+
+    <CleanToolReplaceToken SourceFile="$(MSBuildProjectDirectory)\Bundle\PackageContents.xml"
+                           DestinationFile="$(StampedManifest)" Token="@VERSION@" Value="$(Version)" />
+  </Target>
+
+  <!--
+    After build: the manifest and our own DLLs are copied into the bundle folder (local testing).
+    The copy fails while AutoCAD is running because the DLL is locked: close AutoCAD first.
+  -->
+  <Target Name="DeployCleanToolBundle" AfterTargets="StampBundleManifest" Condition="'$(DeployBundle)' == 'true'">
+    <Copy SourceFiles="$(StampedManifest)" DestinationFolder="$(BundleDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_CleanToolBinaries);@(_CleanToolSymbols)" DestinationFolder="$(BundleDir)\Contents" SkipUnchangedFiles="true" />
+
+    <Message Importance="high" Text="CleanTool deployed -> $(BundleDir)" />
+  </Target>
+
+  <!--
+    Release build: the release package in <repo>\artifacts\
+      CleanTool-<version>.zip            the CleanTool.bundle folder (extract into ApplicationPlugins)
+      CleanTool-Setup-<version>.exe      per-user installer, when Inno Setup 7 or 6 is installed
+    Build with:  dotnet build CleanTool.sln -c Release
+    Other Inno Setup location:  -p:InnoSetupCompiler="D:\Tools\Inno Setup 7\ISCC.exe"
+  -->
+  <Target Name="PackCleanTool" AfterTargets="StampBundleManifest" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <ArtifactsDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..\artifacts'))</ArtifactsDir>
+      <_StageDir>$(ArtifactsDir)\stage</_StageDir>
+      <_StageBundle>$(_StageDir)\CleanTool.bundle</_StageBundle>
+      <!-- Inno Setup 7 (per-user or all-users install) first, then Inno Setup 6. -->
+      <InnoSetupCompiler Condition="'$(InnoSetupCompiler)' == '' and Exists('$(LOCALAPPDATA)\Programs\Inno Setup 7\ISCC.exe')">$(LOCALAPPDATA)\Programs\Inno Setup 7\ISCC.exe</InnoSetupCompiler>
+      <InnoSetupCompiler Condition="'$(InnoSetupCompiler)' == '' and Exists('$(ProgramFiles)\Inno Setup 7\ISCC.exe')">$(ProgramFiles)\Inno Setup 7\ISCC.exe</InnoSetupCompiler>
+      <InnoSetupCompiler Condition="'$(InnoSetupCompiler)' == '' and Exists('$(LOCALAPPDATA)\Programs\Inno Setup 6\ISCC.exe')">$(LOCALAPPDATA)\Programs\Inno Setup 6\ISCC.exe</InnoSetupCompiler>
+      <InnoSetupCompiler Condition="'$(InnoSetupCompiler)' == ''">$(MSBuildProgramFiles32)\Inno Setup 6\ISCC.exe</InnoSetupCompiler>
+      <_InstallerScript>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..\installer\CleanTool.iss'))</_InstallerScript>
+    </PropertyGroup>
+
+    <RemoveDir Directories="$(_StageDir)" />
+    <Copy SourceFiles="$(StampedManifest)" DestinationFolder="$(_StageBundle)" />
+    <Copy SourceFiles="@(_CleanToolBinaries)" DestinationFolder="$(_StageBundle)\Contents" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\..\LICENSE.txt" DestinationFolder="$(_StageBundle)" />
+
+    <!-- The zip holds the CleanTool.bundle folder itself, so it can be extracted straight into ApplicationPlugins. -->
+    <ZipDirectory SourceDirectory="$(_StageDir)" DestinationFile="$(ArtifactsDir)\CleanTool-$(Version).zip" Overwrite="true" />
+    <Message Importance="high" Text="CleanTool package -> $(ArtifactsDir)\CleanTool-$(Version).zip" />
+
+    <Exec Condition="Exists('$(InnoSetupCompiler)')"
+          Command="&quot;$(InnoSetupCompiler)&quot; /Q /DAppVersion=$(Version) /DBundleDir=&quot;$(_StageBundle)&quot; /O&quot;$(ArtifactsDir)&quot; &quot;$(_InstallerScript)&quot;" />
+    <Message Condition="Exists('$(InnoSetupCompiler)')" Importance="high" Text="CleanTool installer -> $(ArtifactsDir)\CleanTool-Setup-$(Version).exe" />
+    <Message Condition="!Exists('$(InnoSetupCompiler)')" Importance="high"
+             Text="Inno Setup (7 or 6) not found ($(InnoSetupCompiler)): only the zip was created. Install it from https://jrsoftware.org to get the installer." />
+  </Target>
+
+</Project>

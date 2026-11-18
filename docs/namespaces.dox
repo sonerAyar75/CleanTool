@@ -1,0 +1,71 @@
+/**
+@namespace CleanTool
+@brief CleanTool – AutoCAD cleanup and wall-trim tools.
+
+@namespace CleanTool.Core
+@brief Platform-independent rules and algorithms. Has no reference to AutoCAD and is fully unit tested.
+
+@namespace CleanTool.Core.Abstractions
+@brief Contracts shared by all operations: ICleanOperation, CleanStage, IOperationScope, ICleanLogger.
+
+@namespace CleanTool.Core.Geometry
+@brief Basic geometry: points, segments, tolerances and affine transforms.
+
+@namespace CleanTool.Core.Geometry.Shapes
+@brief Comparable shapes (line, circle, arc, polyline, block) that objects are read into.
+
+@namespace CleanTool.Core.Hosting
+@brief Tool modules and the loader that isolates them from each other.
+
+@namespace CleanTool.Core.Model
+@brief Object identity and display properties.
+
+@namespace CleanTool.Core.Pipeline
+@brief Runs operations in stage order, each in its own scope, and reports the results.
+
+@namespace CleanTool.Core.Operations.Thickness
+@brief Thickness = 0: removes the extrusion of objects (runs before Z = 0).
+
+@namespace CleanTool.Core.Operations.Flatten
+@brief Z = 0: moves objects (including floating blocks) to the XY plane.
+
+@namespace CleanTool.Core.Operations.Duplicates
+@brief Finds and removes exact copies, including copies of block content.
+
+@namespace CleanTool.Core.Operations.BlockTrim
+@brief WallTrim: cuts loose lines where they run along or through blocks such as columns, and optionally joins
+the remaining wall faces into closed outlines.
+
+@namespace CleanTool.Core.Operations.Layers
+@brief Deletes unused layers; wildcard matching for name patterns.
+
+@namespace CleanTool.AcadTool
+@brief AutoCAD adapter: plug-in entry point, tool modules, commands, dialogs and gateways.
+
+@namespace CleanTool.AcadTool.Hosting
+@brief ToolHost: how commands reach the loaded tool modules.
+
+@namespace CleanTool.AcadTool.Tools.Clean
+@brief The Clean tool: CT_CLEAN, -CT_CLEAN and the quick cleanup commands.
+
+@namespace CleanTool.AcadTool.Tools.WallTrim
+@brief The WallTrim tool: CT_WALLTRIM and -CT_WALLTRIM.
+
+@namespace CleanTool.AcadTool.Composition
+@brief Shared wiring: operation factories and registry, runner, settings, the AutoCAD session behind the dialog.
+
+@namespace CleanTool.AcadTool.UI
+@brief Shared WinForms dialogs and options pages; independent of AutoCAD types.
+
+@namespace CleanTool.AcadTool.Gateways
+@brief AutoCAD implementations of the Core ports.
+
+@namespace CleanTool.AcadTool.ShapeReading
+@brief Converts AutoCAD entities, their properties and block content into Core shapes.
+
+@namespace CleanTool.AcadTool.Flattening
+@brief Per-type strategies for moving entities to Z = 0.
+
+@namespace CleanTool.AcadTool.Infrastructure
+@brief Session, entity scopes (selection, blocks), transactions, command-line output and logging.
+*/

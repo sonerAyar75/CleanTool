@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    CleanTool.Core: has NO reference to AutoCAD.
+    Contains only the cleanup rules, algorithms and port (interface) definitions, so it is fully unit testable.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>CleanTool.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CleanTool.Core.Tests" />
+  </ItemGroup>
+
+</Project>

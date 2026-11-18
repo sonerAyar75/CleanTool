@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AutoCAD Autoloader manifest.
+  AutoCAD reads this file from %AppData%\Autodesk\ApplicationPlugins\CleanTool.bundle\ at startup and loads the DLL
+  automatically (no NETLOAD needed). This folder is one of AutoCAD's default trusted locations.
+  R25.0 = AutoCAD 2025, R25.1 = AutoCAD 2026 (.NET 8).
+  @VERSION@ is replaced with $(Version) from Directory.Build.props when the bundle is built.
+-->
+<ApplicationPackage
+    SchemaVersion="1.0"
+    AppVersion="@VERSION@"
+    ProductCode="{3E8B5C71-9A42-4D6F-B0C3-7F15E2A9D684}"
+    UpgradeCode="{A1D7F390-6C28-4B5E-9E14-2C83B7D05F19}"
+    Name="CleanTool"
+    Description="Drawing cleanup and wall trimming tools for AutoCAD"
+    Author="SonerAyar">
+
+  <CompanyDetails Name="SonerAyar" />
+
+  <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R25.0" SeriesMax="R25.1" />
+
+  <Components Description="CleanTool .NET module">
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R25.0" SeriesMax="R25.1" />
+    <ComponentEntry
+        AppName="CleanTool"
+        Version="@VERSION@"
+        ModuleName="./Contents/CleanTool.AcadTool.dll"
+        AppDescription="CleanTool commands (TTC, TTW)"
+        LoadOnAutoCADStartup="True" />
+  </Components>
+
+</ApplicationPackage>
